@@ -17,10 +17,10 @@ class OverfitDataset(Dataset):
         return self.data[idx]
 
 
-num_samples = 8
+num_samples = 64
 seq_length = 32
-vocab_size = 16
-dim = 4
+vocab_size = 2048
+dim = 32
 num_layers = 2
 dropout = 0
 head_dim = 4
@@ -38,9 +38,10 @@ dataloader = DataLoader(dataset, batch_size=len(dataset))
 
 model = Seq2Emb(vocab_size, dim, num_layers, head_dim, hidden_dim, dropout)
 criterion = nn.CrossEntropyLoss()
-optimizer = optim.Adam(model.parameters(), lr=0.001)
+optimizer = optim.AdamW(model.parameters(), lr=0.005)
+lambda_ = 1e-4
 
-num_epochs = 5000
+num_epochs = 50_000
 
 # Training
 for epoch in range(num_epochs):
@@ -48,7 +49,9 @@ for epoch in range(num_epochs):
         optimizer.zero_grad()
         outputs = model(batch)
         loss = criterion(outputs.reshape(-1, vocab_size), batch.reshape(-1))
-        loss.backward()
+        l2_loss = sum(p.pow(2.0).sum() for p in model.parameters())
+        loss2 = loss + lambda_ * l2_loss
+        loss2.backward()
         optimizer.step()
 
     if (epoch + 1) % 100 == 0:
